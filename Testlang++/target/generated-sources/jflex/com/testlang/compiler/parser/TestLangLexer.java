@@ -35,7 +35,7 @@ public class TestLangLexer implements java_cup.runtime.Scanner {
   private static final int [] ZZ_CMAP_TOP = zzUnpackcmap_top();
 
   private static final String ZZ_CMAP_TOP_PACKED_0 =
-    "\1\0\37\u0100\1\u0200\267\u0100\10\u0300\u1020\u0100";
+    "\1\0\37\u0100\1\u0200\267\u0100\10\u0300\36\u0100\1\u0400\u1001\u0100";
 
   private static int [] zzUnpackcmap_top() {
     int [] result = new int[4352];
@@ -71,10 +71,11 @@ public class TestLangLexer implements java_cup.runtime.Scanner {
     "\1\30\1\31\1\32\1\33\1\34\1\35\1\36\2\12"+
     "\1\37\1\12\1\40\1\41\1\42\1\12\1\43\1\44"+
     "\1\45\1\46\2\12\1\47\1\50\1\12\1\51\1\0"+
-    "\1\52\7\0\1\3\u01a2\0\2\3\326\0\u0100\3";
+    "\1\52\7\0\1\3\u01a2\0\2\3\326\0\u0100\3\377\0"+
+    "\1\1";
 
   private static int [] zzUnpackcmap_blocks() {
-    int [] result = new int[1024];
+    int [] result = new int[1280];
     int offset = 0;
     offset = zzUnpackcmap_blocks(ZZ_CMAP_BLOCKS_PACKED_0, offset, result);
     return result;

@@ -33,10 +33,10 @@ public class GeneratedTests {
         for (Map.Entry<String, String> h : headers.entrySet()) {
             requestBuilder.header(h.getKey(), h.getValue());
         }
-        requestBuilder.method("POST", HttpRequest.BodyPublishers.ofString("{\"username\":\"demo\",\"password\":\"demo\"}"));
+        requestBuilder.method("POST", HttpRequest.BodyPublishers.ofString("{\"username\":\"san\",\"password\":\"1234\"}"));
 
         HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode());
+        assertEquals(998, response.statusCode());
         assertTrue(response.body().contains("/anything/api/login"));
     }
 

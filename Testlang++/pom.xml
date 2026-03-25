@@ -99,6 +99,18 @@
               </sources>
             </configuration>
           </execution>
+          <execution>
+            <id>add-generated-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-test-sources/testlang</source>
+              </sources>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
@@ -124,6 +136,21 @@
         <configuration>
           <mainClass>com.testlang.compiler.TestLangCompiler</mainClass>
         </configuration>
+        <executions>
+          <execution>
+            <id>generate-dsl-tests</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <arguments>
+                <argument>${project.basedir}/src/main/resources/examples/sample.test</argument>
+                <argument>${project.build.directory}/generated-test-sources/testlang</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

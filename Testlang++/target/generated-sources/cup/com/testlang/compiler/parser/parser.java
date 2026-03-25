@@ -180,6 +180,25 @@ public class parser extends java_cup.runtime.lr_parser {
 
 
     @Override
+    public void syntax_error(java_cup.runtime.Symbol curToken) {
+        StringBuilder message = new StringBuilder("Syntax error");
+        if (curToken != null) {
+            String tokenName = tokenName(curToken.sym);
+            message.append(" near ").append(tokenName);
+            if (curToken.value != null) {
+                message.append(" '").append(curToken.value).append("'");
+            }
+
+            String hint = syntaxHint(curToken.sym);
+            if (!hint.isEmpty()) {
+                message.append("; ").append(hint);
+            }
+        }
+
+        report_error(message.toString(), curToken);
+    }
+
+    @Override
     public void report_error(String message, Object info) {
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = (java_cup.runtime.Symbol) info;
@@ -191,6 +210,30 @@ public class parser extends java_cup.runtime.lr_parser {
     @Override
     public void report_fatal_error(String message, Object info) {
         report_error(message, info);
+    }
+
+    private String tokenName(int tokenId) {
+        if (tokenId >= 0 && tokenId < sym.terminalNames.length) {
+            return sym.terminalNames[tokenId];
+        }
+        return "token#" + tokenId;
+    }
+
+    private String syntaxHint(int tokenId) {
+        switch (tokenId) {
+            case sym.EXPECT:
+            case sym.TEST:
+            case sym.GET:
+            case sym.POST:
+            case sym.PUT:
+            case sym.DELETE:
+            case sym.RBRACE:
+                return "did you forget a ';' before this token?";
+            case sym.IDENTIFIER:
+                return "check keyword spelling and statement separators";
+            default:
+                return "";
+        }
     }
 
     static class ConfigAccumulator {
@@ -402,7 +445,7 @@ class CUP$parser$actions {
 		int vleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
 		int vright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		VarValue v = (VarValue)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
-		 RESULT = new Variable(name, v.type, v.value); 
+		 RESULT = new Variable(name, v.type, v.value, nameleft); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("variable_decl",6, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-4)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

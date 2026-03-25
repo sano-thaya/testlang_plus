@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -179,11 +178,21 @@ public final class CodeGenerator {
 
     private Map<String, String> toVariableMap(List<Variable> variables) {
         Map<String, String> result = new LinkedHashMap<>();
+        Map<String, Integer> firstDeclarationLines = new LinkedHashMap<>();
         for (Variable variable : variables) {
             if (result.containsKey(variable.getName())) {
-                throw new RuntimeException("Duplicate variable: " + variable.getName());
+                Integer firstLine = firstDeclarationLines.get(variable.getName());
+                int duplicateLine = variable.getLine();
+                StringBuilder msg = new StringBuilder();
+                msg.append("Line ").append(duplicateLine > 0 ? duplicateLine : "?")
+                    .append(": Duplicate variable '").append(variable.getName()).append("'");
+                if (firstLine != null && firstLine > 0) {
+                    msg.append(" (first declared at line ").append(firstLine).append(")");
+                }
+                throw new RuntimeException(msg.toString());
             }
             result.put(variable.getName(), String.valueOf(variable.getValue()));
+            firstDeclarationLines.put(variable.getName(), variable.getLine());
         }
         return result;
     }

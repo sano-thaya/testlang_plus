@@ -9,11 +9,17 @@ public final class Variable {
     private final String name;
     private final Type type;
     private final Object value;
+    private final int line;
 
     public Variable(String name, Type type, Object value) {
+        this(name, type, value, -1);
+    }
+
+    public Variable(String name, Type type, Object value, int line) {
         this.name = name;
         this.type = type;
         this.value = value;
+        this.line = line;
     }
 
     public String getName() {
@@ -26,5 +32,9 @@ public final class Variable {
 
     public Object getValue() {
         return value;
+    }
+
+    public int getLine() {
+        return line;
     }
 }

@@ -10,6 +10,8 @@ import com.testlang.compiler.model.Program;
 import com.testlang.compiler.parser.TestLangLexer;
 import com.testlang.compiler.parser.parser;
 
+import java_cup.runtime.DefaultSymbolFactory;
+
 public final class TestLangCompiler {
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
@@ -23,7 +25,7 @@ public final class TestLangCompiler {
 
         try (Reader reader = Files.newBufferedReader(input, StandardCharsets.UTF_8)) {
             TestLangLexer lexer = new TestLangLexer(reader);
-            parser syntaxParser = new parser(lexer);
+            parser syntaxParser = new parser(lexer, new DefaultSymbolFactory());
             Program program = (Program) syntaxParser.parse().value;
 
             CodeGenerator generator = new CodeGenerator();

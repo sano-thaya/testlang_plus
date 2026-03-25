@@ -1,0 +1,30 @@
+config {
+base_url = "https://example.com";
+header "Content-Type" = "application/json";
+}
+
+let id = 42;
+let token = "abc123";
+
+test login {
+POST "/api/login" {
+header "Authorization" = "Bearer $token";
+body = "{\"username\":\"demo\",\"password\":\"demo\"}";
+};
+expect status = 200;
+expect body contains "token";
+}
+
+test get_user {
+GET "/api/users/$id";
+expect status = 200;
+expect header "Content-Type" contains "application/json";
+}
+
+test update_user {
+PUT "/api/users/$id" {
+body = "{\"name\":\"Updated User\"}";
+};
+expect status = 200;
+expect body contains "Updated";
+}

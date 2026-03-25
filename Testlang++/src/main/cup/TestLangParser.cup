@@ -1,0 +1,177 @@
+package com.testlang.compiler.parser;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.testlang.compiler.model.AssertionSpec;
+import com.testlang.compiler.model.Config;
+import com.testlang.compiler.model.Program;
+import com.testlang.compiler.model.RequestOptions;
+import com.testlang.compiler.model.RequestSpec;
+import com.testlang.compiler.model.TestCase;
+import com.testlang.compiler.model.Variable;
+
+parser code {:
+    @Override
+    public void report_error(String message, Object info) {
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = (java_cup.runtime.Symbol) info;
+            throw new RuntimeException("Line " + s.left + ": " + message);
+        }
+        throw new RuntimeException("Line ?: " + message);
+    }
+
+    @Override
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+    }
+
+    static class ConfigAccumulator {
+        String baseUrl;
+        int baseUrlLine = -1;
+        Map<String, String> headers = new LinkedHashMap<>();
+
+        void merge(ConfigAccumulator other) {
+            if (other.baseUrl != null) {
+                if (this.baseUrl != null) {
+                    throw new RuntimeException("Line " + other.baseUrlLine + ": base_url may be declared only once");
+                }
+                this.baseUrl = other.baseUrl;
+                this.baseUrlLine = other.baseUrlLine;
+            }
+            this.headers.putAll(other.headers);
+        }
+
+        Config toConfig() {
+            return new Config(baseUrl, headers);
+        }
+    }
+
+    static class VarValue {
+        Variable.Type type;
+        Object value;
+
+        VarValue(Variable.Type type, Object value) {
+            this.type = type;
+            this.value = value;
+        }
+    }
+:};
+
+terminal CONFIG, BASE_URL, HEADER, LET, TEST;
+terminal GET, POST, PUT, DELETE;
+terminal EXPECT, STATUS, BODY, CONTAINS;
+terminal LBRACE, RBRACE, SEMICOLON, EQUALS;
+terminal String IDENTIFIER;
+terminal String STRING;
+terminal Integer NUMBER;
+
+non terminal Program program;
+non terminal Config opt_config;
+non terminal Config config_block;
+non terminal ConfigAccumulator config_entries;
+non terminal ConfigAccumulator config_entry;
+non terminal List variable_list;
+non terminal Variable variable_decl;
+non terminal VarValue value;
+non terminal List test_list;
+non terminal TestCase test_block;
+non terminal RequestSpec request_stmt;
+non terminal RequestOptions request_option_list;
+non terminal RequestOptions request_option;
+non terminal List assertion_list;
+non terminal AssertionSpec assertion_stmt;
+
+start with program;
+
+program ::= opt_config:cfg variable_list:vars test_list:tests
+          {: RESULT = new Program(cfg, vars, tests); :}
+          ;
+
+opt_config ::= config_block:cfg
+             {: RESULT = cfg; :}
+             | 
+             {: RESULT = new Config(null, new LinkedHashMap<>()); :}
+             ;
+
+config_block ::= CONFIG LBRACE config_entries:entries RBRACE
+               {: RESULT = entries.toConfig(); :}
+               ;
+
+config_entries ::= config_entries:left config_entry:right
+                 {: left.merge(right); RESULT = left; :}
+                 |
+                 {: RESULT = new ConfigAccumulator(); :}
+                 ;
+
+config_entry ::= BASE_URL:kw EQUALS STRING:url SEMICOLON
+               {: ConfigAccumulator c = new ConfigAccumulator(); c.baseUrl = url; c.baseUrlLine = kwleft; RESULT = c; :}
+               | HEADER STRING:key EQUALS STRING:value SEMICOLON
+               {: ConfigAccumulator c = new ConfigAccumulator(); c.headers.put(key, value); RESULT = c; :}
+               ;
+
+variable_list ::= variable_list:list variable_decl:decl
+                {: list.add(decl); RESULT = list; :}
+                |
+                {: RESULT = new ArrayList(); :}
+                ;
+
+variable_decl ::= LET IDENTIFIER:name EQUALS value:v SEMICOLON
+                {: RESULT = new Variable(name, v.type, v.value); :}
+                ;
+
+value ::= STRING:text
+        {: RESULT = new VarValue(Variable.Type.STRING, text); :}
+        | NUMBER:n
+        {: RESULT = new VarValue(Variable.Type.INTEGER, n); :}
+        ;
+
+test_list ::= test_list:list test_block:t
+            {: list.add(t); RESULT = list; :}
+            | test_block:t
+            {: List temp = new ArrayList(); temp.add(t); RESULT = temp; :}
+            ;
+
+test_block ::= TEST IDENTIFIER:name LBRACE request_stmt:req assertion_list:assertions RBRACE
+             {: RESULT = new TestCase(name, req, assertions); :}
+             ;
+
+request_stmt ::= GET STRING:path SEMICOLON
+               {: RESULT = new RequestSpec("GET", path, new LinkedHashMap<>(), null); :}
+               | DELETE STRING:path SEMICOLON
+               {: RESULT = new RequestSpec("DELETE", path, new LinkedHashMap<>(), null); :}
+               | POST STRING:path LBRACE request_option_list:opts RBRACE SEMICOLON
+               {: RESULT = new RequestSpec("POST", path, opts.getHeaders(), opts.getBody()); :}
+               | PUT STRING:path LBRACE request_option_list:opts RBRACE SEMICOLON
+               {: RESULT = new RequestSpec("PUT", path, opts.getHeaders(), opts.getBody()); :}
+               ;
+
+request_option_list ::= request_option_list:list request_option:opt
+                      {: list.getHeaders().putAll(opt.getHeaders()); if (opt.getBody() != null) { list.setBody(opt.getBody(), opt.getBodyLine()); } RESULT = list; :}
+                      |
+                      {: RESULT = new RequestOptions(); :}
+                      ;
+
+request_option ::= HEADER STRING:key EQUALS STRING:value SEMICOLON
+                 {: RequestOptions o = new RequestOptions(); o.addHeader(key, value); RESULT = o; :}
+                 | BODY:kw EQUALS STRING:body SEMICOLON
+                 {: RequestOptions o = new RequestOptions(); o.setBody(body, kwleft); RESULT = o; :}
+                 ;
+
+assertion_list ::= assertion_list:list assertion_stmt:a
+                 {: list.add(a); RESULT = list; :}
+                 | assertion_stmt:a
+                 {: List temp = new ArrayList(); temp.add(a); RESULT = temp; :}
+                 ;
+
+assertion_stmt ::= EXPECT STATUS EQUALS NUMBER:n SEMICOLON
+                 {: RESULT = AssertionSpec.statusEquals(n); :}
+                 | EXPECT HEADER STRING:key EQUALS STRING:value SEMICOLON
+                 {: RESULT = AssertionSpec.headerEquals(key, value); :}
+                 | EXPECT HEADER STRING:key CONTAINS STRING:text SEMICOLON
+                 {: RESULT = AssertionSpec.headerContains(key, text); :}
+                 | EXPECT BODY CONTAINS STRING:text SEMICOLON
+                 {: RESULT = AssertionSpec.bodyContains(text); :}
+                 ;
